@@ -25,7 +25,7 @@ curl -s "https://get.sdkman.io" | bash
 Ejecutar el siguiente comando para no tener que abrir una nueva terminal:
 
 ```bash
-source "/home/devops/.sdkman/bin/sdkman-init.sh"
+source "~/.sdkman/bin/sdkman-init.sh"
 ```
 
 Para listar las opciones de java disponibles:
@@ -68,7 +68,7 @@ mvn --version
 
 En la misma salida de maven, verificar que este utilizando la version de maven previamente instalada:
 
-![Evidencia de version de java utilizada](/home/devops/joko-utils/img/java-version.png)
+![Evidencia de version de java utilizada](/img/java-version.png)
 
 # 3.3. Obtención y exploración del proyecto joko-utils
 
@@ -110,7 +110,7 @@ mvn clean
 ```
 **Resultado**: Build Success
 
-![Clean Success](/home/devops/joko-utils/img/clean-output.png)
+![Clean Success](/img/clean-output.png)
 
 ### 2 - validate (Validar el codigo): 
 
@@ -122,7 +122,7 @@ mvn validate
 
 **Resultado**: Build Success
 
-![Validate Success](/home/devops/joko-utils/img/validate-output.png)
+![Validate Success](/img/validate-output.png)
 
 ### 3 - compile (Compilar el codigo): 
 
@@ -134,7 +134,7 @@ mvn compile
 
 **Resultado**: Build Success
 
-![Compile Succes](/home/devops/joko-utils/img/compile-output.png)
+![Compile Succes](/img/compile-output.png)
 
 ### 4 - test (Ejecutar los test):
 
@@ -148,7 +148,7 @@ mvn test
 
 **Test realizados**: 7
 
-![Test Success](/home/devops/joko-utils/img/test-output.png)
+![Test Success](/img/test-output.png)
 
 ### 5 - package (Generar el artefacto empaquetado):
 
@@ -164,9 +164,9 @@ mvn package
 
 **Nombre del artefacto**: joko-utils-0.6.9.jar
 
-![Package Success](/home/devops/joko-utils/img/package-output.png)
+![Package Success](/img/package-output.png)
 
-![Artifact Name](/home/devops/joko-utils/img/artifact.png)
+![Artifact Name](/img/artifact.png)
 
 ## Consejo practico
 
@@ -182,11 +182,11 @@ El cual ejecuta el **clean** y luego **validate, compile, test** y finalmente **
 
 El resultado de la ejecucion del script fue exitosa:
 
-![Script Succes](/home/devops/joko-utils/img/script-output.png)
+![Script Succes](/img/script-output.png)
 
-## 3.6: Cambio mínimo en el codigo
+## 3.6: Cambio mínimo en el codigo 
 
-El archivo modificado fue: `/home/devops/joko-utils/src/main/java/io/github/jokoframework/utils/date/DateTimeUtils.java`, especificamente la funcion: `dateFromHourMinSec`
+El archivo modificado fue: `~/joko-utils/src/main/java/io/github/jokoframework/utils/date/DateTimeUtils.java`, especificamente la funcion: `dateFromHourMinSec`
 
 Mensaje original:
 
@@ -202,7 +202,7 @@ throw new IllegalArgumentException("joko-utils v2.0: Invalid time format [" + hh
 
 Se realizo nuevamente la ejecucion del script, el cual termino con un resultado exitoso.
 
-![Script Succes 2](/home/devops/joko-utils/img/script-output2.png)
+![Script Succes 2](/img/script-output2.png)
 
 No hubo impacto en la ejecucion de los tests.
 
