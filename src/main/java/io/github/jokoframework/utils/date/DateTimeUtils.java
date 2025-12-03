@@ -254,7 +254,7 @@ public class DateTimeUtils {
             gc.set(Calendar.MILLISECOND, 0);
             return gc.getTime();
         }else{
-            throw new IllegalArgumentException(hhmmss + " is not a valid time, expecting HH:MM:SS format");
+            throw new IllegalArgumentException("joko-utils v2.0: Invalid time format [" + hhmmss + "]. Expected format is HH:MM:SS.");
         }
     }
 
