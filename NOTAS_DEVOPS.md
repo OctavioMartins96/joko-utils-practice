@@ -68,7 +68,7 @@ mvn --version
 
 En la misma salida de maven, verificar que este utilizando la version de maven previamente instalada:
 
-![Evidencia de version de java utilizada](/img/java-version.png)
+![Evidencia de version de java utilizada](/evidencias/devops-001/java-version.png)
 
 # 3.3. Obtención y exploración del proyecto joko-utils
 
@@ -110,7 +110,7 @@ mvn clean
 ```
 **Resultado**: Build Success
 
-![Clean Success](/img/clean-output.png)
+![Clean Success](/evidencias/devops-001/clean-output.png)
 
 ### 2 - validate (Validar el codigo): 
 
@@ -122,7 +122,7 @@ mvn validate
 
 **Resultado**: Build Success
 
-![Validate Success](/img/validate-output.png)
+![Validate Success](/evidencias/devops-001/validate-output.png)
 
 ### 3 - compile (Compilar el codigo): 
 
@@ -134,7 +134,7 @@ mvn compile
 
 **Resultado**: Build Success
 
-![Compile Succes](/img/compile-output.png)
+![Compile Succes](/evidencias/devops-001/compile-output.png)
 
 ### 4 - test (Ejecutar los test):
 
@@ -148,7 +148,7 @@ mvn test
 
 **Test realizados**: 7
 
-![Test Success](/img/test-output.png)
+![Test Success](/evidencias/devops-001/test-output.png)
 
 ### 5 - package (Generar el artefacto empaquetado):
 
@@ -164,9 +164,9 @@ mvn package
 
 **Nombre del artefacto**: joko-utils-0.6.9.jar
 
-![Package Success](/img/package-output.png)
+![Package Success](/evidencias/devops-001/package-output.png)
 
-![Artifact Name](/img/artifact.png)
+![Artifact Name](/evidencias/devops-001/artifact.png)
 
 ## Consejo practico
 
@@ -182,7 +182,7 @@ El cual ejecuta el **clean** y luego **validate, compile, test** y finalmente **
 
 El resultado de la ejecucion del script fue exitosa:
 
-![Script Succes](/img/script-output.png)
+![Script Succes](/evidencias/devops-001/script-output.png)
 
 ## 3.6: Cambio mínimo en el codigo 
 
@@ -202,7 +202,7 @@ throw new IllegalArgumentException("joko-utils v2.0: Invalid time format [" + hh
 
 Se realizo nuevamente la ejecucion del script, el cual termino con un resultado exitoso.
 
-![Script Succes 2](/img/script-output2.png)
+![Script Succes 2](/evidencias/devops-001/script-output2.png)
 
 No hubo impacto en la ejecucion de los tests.
 
@@ -236,8 +236,6 @@ La parte de realizar el script.sh se asemeja a un pipeline de CI real de Jenkins
 
 Estos fallos se detectarian al hacer los comandos de `mvn compile` o `mvn test`, ya que verifican que se haya construido correctamente y que hayan pasado los test unitarios correspondientes
 
-
-
 Fuentes: 
 - https://sdkman.io/ (Ques es SDKMAN, para que sirve y comando de instalacion)
 - https://www.markdownguide.org/basic-syntax/ (Sintaxis del markdown)
@@ -245,3 +243,235 @@ Fuentes:
 - https://bertvv.github.io/cheat-sheets/Bash.html (Tips para bash)
 - https://www.youtube.com/watch?v=bBqxC43ASsM (Maven)
 - https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo (Como realizar un fork)
+
+
+
+# Ejercicio Práctico - DevOps - 002
+
+## 3.1 Instalación y configuración de Docker engine
+
+Para realizar la instalacion de docker, primeramente de debe de desinstalar los paquetes/dependencias que podrian generar conflicto.
+
+```bash
+sudo apt remove $(dpkg --get-selections docker.io docker-compose docker-compose-v2 docker-doc podman-docker containerd runc | cut -f1)
+```
+
+### Instalacion usando el repositorio APT
+
+Configurar el repositorio apt:
+
+```bash
+# Añadir la llave GPG oficial de Docker:
+sudo apt update
+sudo apt install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Añadir el repositorio a las fuentes del APT:
+sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+sudo apt update
+```
+
+Instalar los paquetes de Docker:
+
+```bash
+sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+Para verificar si Docker esta corriendo:
+
+```bash
+sudo systemctl status docker
+```
+
+Probar que la instalación sea exitosa corriendo la imagen **"hello-world"**:
+
+```bash
+sudo docker run hello-world
+```
+
+### Administrar Docker como usuario no root:
+
+Crear el grupo `docker`:
+
+```bash
+sudo groupadd docker
+```
+
+Añadir el/nuestro usuario al grupo `docker`:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Ejecutar el siguiente comando para activar los cambios del grupo:
+
+```bash
+newgrp docker
+```
+
+Verificar correr comando de `docker` sin `sudo`:
+
+```bash
+docker run hello-world
+```
+
+### Salida del comando `docker version`:
+
+```text
+Client: Docker Engine - Community
+ Version:           29.1.2
+ API version:       1.52
+ Go version:        go1.25.5
+ Git commit:        890dcca
+ Built:             Tue Dec  2 21:55:07 2025
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server: Docker Engine - Community
+ Engine:
+  Version:          29.1.2
+  API version:      1.52 (minimum version 1.44)
+  Go version:       go1.25.5
+  Git commit:       de45c2a
+  Built:            Tue Dec  2 21:55:07 2025
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v2.2.0
+  GitCommit:        1c4457e00facac03ce1d75f7b6777a7a851e5c41
+ runc:
+  Version:          1.3.4
+  GitCommit:        v1.3.4-0-gd6d73eb8
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        de40ad0
+```
+
+## 3.2 Despliegue de Jenkins en docker
+
+En docker hub, la imagen oficial LTS de [jenkins](https://hub.docker.com/r/jenkins/jenkins) seria la `jenkins/jenkins:lts-jdk17`.
+
+Comando para iniciar el contenedor:
+
+```bash
+docker run -d \
+--name jenkins-lts \
+-p 8080:8080 \
+-v jenkins_data:/var/jenkins_home \
+--restart unless-stopped \
+jenkins/jenkins:lts-jdk17
+```
+
+Donde:
+
+- -d = Inicia el contenedor en segundo plano y libera la terminal (detached).
+- --name = Asigna un nombre al contenedor.
+- -p = Mapea un puerto del host al puerto del contenedor, `<host>:<contenedor>`.
+- -v = Crea y monta un volumen con el nombre asignado, mapeado al volumen interno dentro del contenedor `<volumen_host>:<volumen_del_contenedor>`.
+- --restart unless-stopped: Reinicia el contenedor a menos que lo detengas explicitamente con `docker stop`. Esto asegura que el contenedor **sobreviva al reinicio del servidor host**.
+
+Una vez ejecutado el comando, verificar que el contenedor esta activo con:
+
+```bash
+docker ps
+```
+
+Salida del comando:
+
+![Salida del comando docker ps](/evidencias/devops-002/docker-ps.png)
+
+## 3.3 Configuracion inicial del jenkins.
+
+Se pudo acceder correctamente al jenkins y a su dashboard:
+
+![Panel de control del jenkins](evidencias/devops-002/dashboard-jenkins.png)
+
+## 3.4 Configuración de Herramientas (Global tool configuration)
+
+Jenkins no puede ver el java instalado en la maquina host, debibo que al ser instalado como contenedor, es un entorno completamente aislado del sistema, por lo cual debe de instalarse nuevamente el java dentro del mismo, para que este pueda trabajar por los jobs dentro del contenedor.
+
+## 3.5 Creacion del Job "joko-utils-build"
+
+La configuración del job seria:
+
+![Configuracion del job](evidencias/devops-002/job-conf.png)
+
+Se opto por la realizacion del pipeline, el cual seria el siguiente:
+
+```pipeline
+pipeline {
+    agent any
+    
+    tools {
+        maven 'maven-3.9.9'
+        jdk 'java-17-tem'
+    }
+    
+    stages {
+        stage ('Checkout Source') {
+            steps {
+                sh 'echo "Clonando Repositorio"'
+                git url: 'https://github.com/OctavioMartins96/joko-utils-practice/', branch: 'testing'
+            }
+        }
+        stage ('Build with maven') {
+            steps {
+                sh 'echo "Construyendo el paquete"'
+                sh 'mvn clean package'
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Construccion Exitosa'
+        }
+        failure {
+            echo 'Construccion Fallida'
+        }
+    }
+}
+```
+
+## 3.6 Ejecucion y verificación del job
+
+Una vez ejecutado el job, el resultado fue exitoso:
+
+![Resultado de la ejecución del job](evidencias/devops-002/build-output.png)
+
+El archivo jar generado se encuentra en: `/var/jenkins_home/workspace/joko-utils-build/target/joko-utils-0.6.9.jar`
+
+## 3.7 Reflexión DevOps II
+
+### ¿Cuál es la ventaja de correr Jenkins en Docker en lugar de instalarlo nativamente en el servidor?
+
+La ventaja de correr Jenkins como docker es que permite que el servicio mismo sea mucho mas escalable, ya que al estar dockerizado, puede ejecutarse en cualquier entorno el cual tenga docker, ademas de contar con un despliegue mas rapido y al estar aislado, sus dependencias no genera conflicots con otros servicios en el host y viceversa.
+
+### ¿Qué es un Volumen en Docker y qué pasaría con tu configuración de Jenkins si no lo hubieras usado al apagar el contenedor?
+
+Un volumen en docker es un almacenamiento que permite persistir los datos generados fuera del contenedor.
+
+Lo que hubiera pasado con la configuracion de Jenkins al momento de apagar el contenedor, es que se habria perdido, debido a la naturaleza temporal y efimera de los contenedores docker.
+
+### En el ejercicio 1 ejecutaste los tests manualmente o por script. ¿Qué valor aporta Jenkins al ejecutar estos tests automáticamente cada vez que se hace un cambio?
+
+Aporta bastante, debido a que al poder ejecutar de forma automatica al recibir cambios, se evita el error humano y te de un retorno de si se pudo construir correctamente, siendo todo este proceso automatico y formando parte importante del CI/CD.
+
+Tambien elimina la necesidad de que los desarrolladores interrumpan su trabajo para ejecutar los test manualmente y cuenta tambien con un **quality gate**, debido a que jenkins tambien actua como un filtro, permitiendo solo que el codigo que haya pasado exitosamente los teste y otros chequeos, avance a las siguientes etapas del pipeline.
+
+
+Fuentes: 
+- [Instalación de Docker engine](https://docs.docker.com/engine/install/ubuntu/)
+- [Imagen de Jenkins en docker](https://hub.docker.com/r/jenkins/jenkins)
+- [Sintaxis de opciones en docker](https://docs.docker.com/reference/cli/docker/container/run/)
+- [Ejemplo de pipeline en Jenkins](https://www.jenkins.io/doc/pipeline/examples/)
+
