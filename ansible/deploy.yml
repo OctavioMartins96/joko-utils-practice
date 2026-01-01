@@ -1,0 +1,51 @@
+name: Despliegue de aplicación Java
+  hosts: app_servers
+  become: yes #Esto es para tener permisos de root (sudo)
+
+  vars:
+    #Estas son las variables que puedes sobreescribir desde jenkins
+    path_destino: "/opt/joko-utils"
+    workspace_jenkins: "/var/jenkins_home/workspace/joko-utils-build"
+    nombre_jar: "joko-utils-0.6.9.jar"
+
+  tasks:
+    - name: Asegurar que java este instalado (Ubuntu)
+      apt:
+        name: openjdk-17-jre #Cambiar la version si se necesita otra
+        state: present
+        update_cache: yes
+
+    - name: Crear el directorio de la aplicación
+      file:
+        path: "{{ path_destino }}"
+        state: directory
+        owner: dev
+        group: dev
+        mode: '0755'
+
+    - name: Copiar el archivo .jar desde jenkins al servidor
+      copy:
+        src: "{{ workspace_jenkins }}/target/{{ nombre_jar }}"
+        dest: "{{ path_destino }}/{{ nombre_jar }}"
+        owner: dev
+        group: dev
+        mode: '0644'
+
+    - name: Crear el archivo de servicio
+      template:
+        src: templates/joko-utils.j2
+        dest: /etc/systemd/system/joko-utils.service
+      notify: Reiniciar aplicacion #Esto llama al handler si el archivo cambia
+
+    - name: Asegurar que el servicio este activo y habilitado
+      systemd:
+        name: joko-utils
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+  handlers:
+    - name: Reiniciar aplicacion
+      systemd:
+        name: joko-utils
+        state: restarted
