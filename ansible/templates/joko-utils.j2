@@ -1,0 +1,12 @@
+[Unit]
+Description=Joko Utils Service
+After=network.target
+
+[Service]
+User=dev
+WorkingDirectory={{ target_path }}
+ExecStart=/usr/bin/java -jar {{ target_path }}/{{ jar_name }}
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
