@@ -475,3 +475,296 @@ Fuentes:
 - [Sintaxis de opciones en docker](https://docs.docker.com/reference/cli/docker/container/run/)
 - [Ejemplo de pipeline en Jenkins](https://www.jenkins.io/doc/pipeline/examples/)
 
+# Ejercicio DevOps-003
+
+## 6.1 **Configuración de Ansible en el Jenkins Master**
+
+Para disponer de **Ansible instalado** dentro del contenedor de Jenkins, se procede a crear un **Dockerfile**:
+
+```Dockerfile
+FROM jenkins/jenkins:lts-jdk17
+
+USER root
+
+RUN apt-get update && \
+    apt-get install -y \
+    --no-install-recommends \
+    ansible
+
+USER jenkins
+```
+
+Se construye la imagen:
+
+```bash
+docker build -t "jenkins-ansible:v1" .
+```
+
+Luego, se detiene y elimina el contenedor anterior:
+
+```bash
+docker stop jenkins
+docker rm jenkins
+```
+
+A continuación, se crea un nuevo contenedor basado en la imagen:
+
+```bash
+docker run -d \
+-v jenkins_data:/var/jenkins_home \
+-p 8080:8080 \
+--restart unless-stopped \
+--name jenkins-ansible \
+jenkins-ansible:v1
+```
+
+Para ingresar al contenedor:
+
+```bash
+docker exec -it jenkins-ansible bash
+```
+
+Y verificar la instalación de Ansible:
+
+```bash
+ansible --version
+```
+
+La salida debería ser similar a:
+
+```bash
+ansible [core 2.19.4]
+  config file = None
+  configured module search path = ['/var/jenkins_home/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python3/dist-packages/ansible
+  ansible collection location = /var/jenkins_home/.ansible/collections:/usr/share/ansible/collections
+  executable location = /usr/bin/ansible
+  python version = 3.13.5 (main, Jun 25 2025, 18:55:22) [GCC 14.2.0] (/usr/bin/python3)
+  jinja version = 3.1.6
+  pyyaml version = 6.0.2 (with libyaml v0.2.5)
+```
+
+Dentro de Jenkins, instalar el plugin **Ansible** e ir a `Tools` → `Ansible installations` para especificar el directorio del ejecutable: `/usr/bin`.
+
+---
+## 6.2 **Configuración de autenticación SSH por claves.**
+
+En la VM se debe generar un par de claves SSH:
+
+```bash
+ssh-keygen -t ed25519 -C "jenkins"
+```
+
+Se obtiene la clave privada:
+
+```bash
+cat .ssh/id_ed25519
+```
+
+Luego, la clave se agrega en Jenkins: `Manage Jenkins → Credentials → Global → Add Credentials`.  
+Se recomienda instalar el plugin **SSH Agent** para integrarlo fácilmente en los pipelines.
+
+Finalmente, la clave pública generada se agrega en el servidor **target** para permitir la autenticación sin contraseña
+
+### 6.3 **Contenido completo del inventario Ansible.**
+
+Para organizar la configuración y archivos de Ansible, se crea una carpeta **ansible** dentro del repositorio. Allí se crea el archivo **ansible.cfg** con el siguiente contenido:
+
+```cfg
+[defaults]
+inventory = hosts.yml
+host_key_checking = False
+```
+
+Donde:
+
+- **inventory**: Indica dónde está el inventario de hosts que Ansible va a utilzar.
+- **host_key_checking = False**: Desactiva la verificación de la clave SSH del host.
+
+Luego se crea el inventario **hosts.yml**:
+
+```yml
+all:
+  children:
+    app_servers:
+      hosts:
+        target-vm:
+          ansible_host: 192.168.122.53
+          ansible_user: dev
+          ansible_become: yes
+          ansible_become_method: sudo
+          ansible_become_password: "{{ VM_PASS }}"
+```
+
+Donde:
+
+- **all**: grupo raíz que contiene todos los hosts del inventario.
+- **children**: permite definir subgrupos dentro de **all**, útil para organizar por función o entorno.
+- **app_servers**: grupo de hosts que comparten la misma función.
+- **hosts**: lista de hosts específicos dentro del grupo.
+- **target-vm**: nombre lógico del host en Ansible.
+- **ansible_host**: IP o hostname real del host.
+- **ansible_user**: usuario con el que Ansible se conectará vía SSH.
+- **ansible_become**: habilita privilegios elevados (sudo).
+- **ansible_become_method**: método para elevar privilegios.
+- **ansible_become_password**: contraseña del sudo, que se pasará como variable desde Jenkins.
+
+---
+
+## 6.4 **Contenido completo del playbook de despliegue**
+
+Se crea **deploy.yml** con el siguiente contenido:
+
+```yml
+---
+- name: Java app deploy
+  hosts: app_servers
+  become: yes
+  
+  vars:
+    target_path: "/opt/joko-utils"
+    jenkins_workspace: ""
+    jar_name: ""
+  
+  tasks:
+    - name: Confirm that Java is installed (Ubuntu)
+      apt:
+        name: openjdk-17-jdk-headless
+        state: present
+        update_cache: yes
+    
+    - name: Create the directory for the application
+      file:
+        path: "{{ target_path }}"
+        state: directory
+        owner: dev
+        group: dev
+        mode: '0755'
+    
+    - name: Copy the .jar file to the target VM
+      copy:
+        src: "{{ jenkins_workspace }}/target/{{ jar_name }}"
+        dest: "{{ target_path }}/{{ jar_name }}"
+        owner: dev
+        group: dev
+        mode: '0644'
+    
+    - name: Create the systemd file
+      template:
+        src: templates/joko-utils.j2
+        dest: /etc/systemd/system/joko-utils.service
+      notify: Restart app
+    
+    - name: Ensure that the service is active and enabled
+      systemd:
+        name: joko-utils
+        state: started
+        enabled: yes
+        daemon_reload: yes
+  
+  handlers:
+    - name: Restart app
+      systemd:
+        name: joko-utils
+        state: restarted
+```
+
+**Explicación:**
+
+- **become: yes**: ejecuta las tareas con privilegios de root usando sudo.
+- **vars**: valores reutilizables dentro del playbook.
+- **tasks**: acciones a ejecutar en los hosts.
+- **handlers**: tareas que se ejecutan solo si son notificadas por un task (ej. reinicio de servicio).
+
+Los módulos utilizados:
+
+- **apt**: gestiona paquetes en Ubuntu/Debian.
+- **file**: asegura la existencia y permisos de un directorio.
+- **copy**: copia archivos desde el workspace de Jenkins al servidor.
+- **template**: crea archivos a partir de plantillas Jinja2.
+- **systemd**: controla servicios del sistema Linux.
+
+---
+## 6.5 Archivo de servicio systemd (.j2)
+
+El archivo .j2 para el systemd seria el siguiente:
+
+```j2
+[Unit]
+Description=Joko Utils Service
+After=network.target
+
+[Service]
+User=dev
+WorkingDirectory={{ target_path }}
+ExecStart=/usr/bin/java -jar {{ target_path }}/{{ jar_name }}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Donde:
+
+- **Description**: Es el nombre descriptivo del servicio.
+- **After**: Indica que este servicio debe iniciarse después de que la red este disponible.
+- **User**: El servicio se ejecuta como el usuario dev, no como root por seguridad.
+- **WorkingDirectory**: Especifica el directorio donde se ejecutara el servicio.
+- **ExecStart**: Especifica el comando para iniciar la aplicación de java
+- **Restart**: Especifica que el servicio tiene que reiniciarse y debe de ser cada 5 segundos en caso que no se pueda iniciar.
+- **WantedBy**: Indica que el servicio debe iniciarse automáticamente cuando el sistema arranca en modo multi-usuario, esto permite que el servicio se habilite con `systemctl enable joko-utils`.
+---
+
+## 6.6 Integración de ansible con Jenkins
+
+Se añade la fase de despliegue en el pipeline de Jenkins después de generar los artefactos con Maven:
+
+```jenkinsfile
+stage ('Deploy with Ansible') {
+    steps {
+        script {
+            def jarName = sh(
+                script: "find target/ -maxdepth 1 -type f -name 'joko-utils-*.jar' | sort | tail -n 1 | xargs basename",
+                returnStdout: true
+            ).trim()
+            
+            sshagent(['jenkins-ssh']) {
+                withCredentials([usernamePassword(credentialsId: 'target-vm-credentials', passwordVariable: 'VM_PASS', usernameVariable: '')]) {
+                    sh """
+                    ansible-playbook -i ansible/hosts.yml \
+                    ansible/deploy.yml \
+                    -e "jenkins_workspace=${WORKSPACE} jar_name=${jarName} VM_PASS=${VM_PASS}" \
+                    --ssh-common-args='-o StrictHostKeyChecking=no'
+                    """
+                }
+            }
+        }
+    }
+}
+```
+
+Donde:
+
+- **def jarName**: obtiene el archivo .jar más reciente del build.
+- **sshagent**: utiliza el agente SSH para conectarse a la VM target.
+- **withCredentials**: provee la contraseña del usuario de la VM para ejecutar tareas que requieran sudo.
+- **ansible-playbook**: ejecuta el playbook con el inventario y variables necesarias.
+- **--ssh-common-args='-o StrictHostKeyChecking=no'**: acepta automáticamente la clave del host para conexiones SSH.
+
+## 6.7 Breve reflexión sobre:
+
+### Ventajas del uso de Ansible para CD.
+Permite desplegar aplicaciones de manera **rápida, repetible y confiable**. Su sintaxis YAML facilita la comprensión de los playbooks y, al no requerir agentes, evita instalar software adicional en los servidores de destino.
+
+### Importancia de la idempotencia y la automatización
+La **idempotencia** garantiza que un playbook pueda ejecutarse múltiples veces con el mismo resultado, evitando errores al reintentar despliegues. La **automatización** asegura que los procesos de despliegue, configuración y actualización sean **predecibles y repetibles**, eliminando tareas manuales propensas a errores.
+
+## Fuentes
+
+- [Modulos de ansible](https://docs.ansible.com/projects/ansible/2.9/modules/list_of_all_modules.html)
+- [Fundamentos basicos de Ansible Playbooks](https://youtu.be/p9bda0-TIRc?si=cWezO0a2PGx_KfR3)
+- [Como usar credenciales en Jenkins](https://www.jenkins.io/doc/book/using/using-credentials/)
+- [Configuración de Ansible] (https://serveracademy.com/courses/ansible-for-complete-beginners/creating-an-ansible-config-file/)
+
+
