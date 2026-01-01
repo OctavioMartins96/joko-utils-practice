@@ -5,13 +5,13 @@
   
   vars:
     target_path: "/opt/joko-utils"
-    jenkins_workspace: "/var/jenkins_home/workspace/joko-utils-build"
-    jar_name: "joko-utils-0.6.9.jar"
+    jenkins_workspace: ""
+    jar_name: ""
   
   tasks:
     - name: Confirm that Java is installed (Ubuntu)
       apt:
-        name: openjdk-17-jre
+        name: openjdk-17-jdk-headless
         state: present
         update_cache: yes
     
