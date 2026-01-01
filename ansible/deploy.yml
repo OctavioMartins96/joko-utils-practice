@@ -1,50 +1,51 @@
-name: Java app deploy
-	hosts: app_servers
-	become: yes
-	
-	vars:
-		target_path: "/opt/joko-utils"
-		jenkins_workspace: "/var/jenkins_home/workspace/joko-utils-build"
-		jar_name: "joko-utils-0.6.9.jar"
-	
-	tasks:
-		- name: Confirm that Java is installed (Ubuntu)
-		  apt:
-			  name: openjdk-17-jre
-			  state: present
-			  update_cache: yes
-		
-		- name: Create the directory for the application
-		  file:
-			  path: "{{ target_path }}"
-			  state: directory
-			  owner: dev
-			  group: dev
-			  mode: '0755'
-		
-		- name: Copy the .jar file to the target VM
-		  copy:
-			  src: "{{ jenkins_workspace }}/target/{{ jar_name }}"
-			  dest: "{{ target_path }}/{{ jar_name }}"
-			  owner: dev
-			  group: dev
-			  mode: '0644'
-		
-		- name: Crate the systemd file
-		  template:
-			  src: templates/joko-utils.j2
-			  dest: /etc/systemd/system/joko-utils.service
-			notify: Restart app
-		
-		- name: Ensure that the service is active and enabled
-		  systemd:
-			  name: joko-utils
-			  state: started
-			  enabled: yes
-			  daemon_reload: yes
-	
-	handlers:
-		- name: Restart app
-		  systemd:
-			  name: joko-utils
-			  state: restarted
+---
+  - name: Java app deploy
+    hosts: app_servers
+    become: yes
+      
+      vars:
+        target_path: "/opt/joko-utils"
+        jenkins_workspace: "/var/jenkins_home/workspace/joko-utils-build"
+        jar_name: "joko-utils-0.6.9.jar"
+      
+      tasks:
+        - name: Confirm that Java is installed (Ubuntu)
+          apt:
+            name: openjdk-17-jre
+            state: present
+            update_cache: yes
+        
+        - name: Create the directory for the application
+          file:
+            path: "{{ target_path }}"
+            state: directory
+            owner: dev
+            group: dev
+            mode: '0755'
+        
+        - name: Copy the .jar file to the target VM
+          copy:
+            src: "{{ jenkins_workspace }}/target/{{ jar_name }}"
+            dest: "{{ target_path }}/{{ jar_name }}"
+            owner: dev
+            group: dev
+            mode: '0644'
+        
+        - name: Create the systemd file
+          template:
+            src: templates/joko-utils.j2
+            dest: /etc/systemd/system/joko-utils.service
+          notify: Restart app
+        
+        - name: Ensure that the service is active and enabled
+          systemd:
+            name: joko-utils
+            state: started
+            enabled: yes
+            daemon_reload: yes
+      
+      handlers:
+        - name: Restart app
+          systemd:
+            name: joko-utils
+            state: restarted
