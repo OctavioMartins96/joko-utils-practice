@@ -698,8 +698,9 @@ After=network.target
 User=dev
 WorkingDirectory={{ target_path }}
 ExecStart=/usr/bin/java -jar {{ target_path }}/{{ jar_name }}
-Restart=always
-RestartSec=5
+Type=oneshot
+RemainAfterExit=yes
+Restart=no
 
 [Install]
 WantedBy=multi-user.target
@@ -712,7 +713,9 @@ Donde:
 - **User**: El servicio se ejecuta como el usuario dev, no como root por seguridad.
 - **WorkingDirectory**: Especifica el directorio donde se ejecutara el servicio.
 - **ExecStart**: Especifica el comando para iniciar la aplicación de java
-- **Restart**: Especifica que el servicio tiene que reiniciarse y debe de ser cada 5 segundos en caso que no se pueda iniciar.
+- **Type**: Especificamos que es un proceso que termina solo.
+- **RemainAfterExit**: Mantiene el servicio **activo** anque el proceso haya terminado, en este proceso nada mas para prueba.
+- **Restart**: Evita reiniciso automaticos innecesarios.
 - **WantedBy**: Indica que el servicio debe iniciarse automáticamente cuando el sistema arranca en modo multi-usuario, esto permite que el servicio se habilite con `systemctl enable joko-utils`.
 ---
 
@@ -765,6 +768,6 @@ La **idempotencia** garantiza que un playbook pueda ejecutarse múltiples veces 
 - [Modulos de ansible](https://docs.ansible.com/projects/ansible/2.9/modules/list_of_all_modules.html)
 - [Fundamentos basicos de Ansible Playbooks](https://youtu.be/p9bda0-TIRc?si=cWezO0a2PGx_KfR3)
 - [Como usar credenciales en Jenkins](https://www.jenkins.io/doc/book/using/using-credentials/)
-- [Configuración de Ansible] (https://serveracademy.com/courses/ansible-for-complete-beginners/creating-an-ansible-config-file/)
+- [Configuración de Ansible](https://serveracademy.com/courses/ansible-for-complete-beginners/creating-an-ansible-config-file/)
 
 
