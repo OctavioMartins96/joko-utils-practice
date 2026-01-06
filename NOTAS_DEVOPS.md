@@ -715,7 +715,7 @@ Donde:
 - **ExecStart**: Especifica el comando para iniciar la aplicación de java
 - **Type**: Especificamos que es un proceso que termina solo.
 - **RemainAfterExit**: Mantiene el servicio **activo** anque el proceso haya terminado, en este proceso nada mas para prueba.
-- **Restart**: Evita reiniciso automaticos innecesarios.
+- **Restart**: Activo para verificar que el servicio se reinicia para la prueba.
 - **WantedBy**: Indica que el servicio debe iniciarse automáticamente cuando el sistema arranca en modo multi-usuario, esto permite que el servicio se habilite con `systemctl enable joko-utils`.
 ---
 
