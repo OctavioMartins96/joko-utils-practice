@@ -6,8 +6,9 @@ After=network.target
 User=dev
 WorkingDirectory={{ target_path }}
 ExecStart=/usr/bin/java -jar {{ target_path }}/{{ jar_name }}
-Restart=always
-RestartSec=5
+Type=oneshot
+RemainAfterExit=yes
+Restart=no
 
 [Install]
 WantedBy=multi-user.target
