@@ -8,7 +8,7 @@ WorkingDirectory={{ target_path }}
 ExecStart=/usr/bin/java -jar {{ target_path }}/{{ jar_name }}
 Type=oneshot
 RemainAfterExit=yes
-Restart=no
+Restart=yes
 
 [Install]
 WantedBy=multi-user.target
